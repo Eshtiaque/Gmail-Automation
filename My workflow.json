@@ -1,0 +1,397 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        112
+      ],
+      "id": "4e870308-1f13-4f90-8104-c96af2f9f832",
+      "name": "Telegram Trigger",
+      "webhookId": "248f3e8d-8116-46cc-ba7f-9afbc912e8b7",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "6erPnCsjjE4OOxtH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [],
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -304,
+        -32
+      ],
+      "id": "0d2a2240-c7c0-4f89-aa28-d1cee5fa8e13",
+      "name": "Gmail Trigger",
+      "alwaysOutputData": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "t9NYwemYG7pqxG0i",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this email content: {{ $node[\"Gmail Trigger\"].json[\"text\"] }}. Provide a 1-line summary and categorize urgency (High/Medium/Low).",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a helpful email assistant."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -80,
+        -32
+      ],
+      "id": "e1c84704-ac9e-4b0c-aa23-25db65bf9798",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        256
+      ],
+      "id": "5bc5412c-be24-4582-bc58-f904e5e3c7b5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7qwLFtPODAny9O6m",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7475537402",
+        "text": "=A new email has been received and analyzed by Gemini AI.  \n\nUrgency: {{ $node[\"Google Sheets\"].json[\"Urgency\"] }}       \n\nSummary: {{ $node[\"Google Sheets\"].json[\"Summary\"] }} \n\nAction Required: Would you like me to generate a professional draft reply for this email?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Yes",
+                    "additionalFields": {
+                      "callback_data": "create_draft",
+                      "url": "={{ $execution.resumeUrl }}"
+                    }
+                  },
+                  {
+                    "text": "❌ No",
+                    "additionalFields": {
+                      "callback_data": "ignore"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        -32
+      ],
+      "id": "4b2f484e-7370-4172-b833-9e3eec10d9be",
+      "name": "Send a text message",
+      "webhookId": "9e92dd31-309f-40d4-b11c-a800adefbde9",
+      "credentials": {
+        "telegramApi": {
+          "id": "6erPnCsjjE4OOxtH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1LQ4uujXqv-t6EB4FoxLQbeN_wE1MNsYNDgT-bEQXIKs",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LQ4uujXqv-t6EB4FoxLQbeN_wE1MNsYNDgT-bEQXIKs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $('Gmail Trigger').item.json.date }}",
+            "Subject": "={{ $('Gmail Trigger').item.json.subject }}",
+            "Sender": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+            "Urgency": "={{ $json.text.split('**Urgency:**')[1].trim() }}",
+            "Summary": "={{ $node[\"Basic LLM Chain\"].json[\"text\"].split(/summary:/i)[1].split(/urgency:/i)[0].replace(/\\*/g, '').trim() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        256,
+        -32
+      ],
+      "id": "92e2ee72-6d11-48a2-9fb0-cd4ba425e5b2",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "n0US6kMxgVS0JxCy",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\"Write a professional and polite reply to this email in English based on the context. Original Email: {{ $node[\"Gmail Trigger\"].json[\"text\"] }}\"",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        -48,
+        112
+      ],
+      "id": "401065ef-5c48-4a32-9d00-858030775ae6",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $node[\"Gmail Trigger\"].json[\"subject\"] }}।",
+        "message": "={{ $node[\"Basic LLM Chain1\"].json[\"text\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        240
+      ],
+      "id": "437db644-0f69-4e53-925a-d8e4eb90d2e1",
+      "name": "Create a draft",
+      "webhookId": "4952190c-f631-4f91-a323-a593c9933fbf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "t9NYwemYG7pqxG0i",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        224
+      ],
+      "id": "561a67cc-54bd-44f4-9a37-fd0d16c651f2",
+      "name": "Wait",
+      "webhookId": "aebf19f5-445d-40cf-9b28-07365325aae9"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        []
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "15197303-025c-4e85-9741-086086380ff3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5b87ec3149ab86c947a17bc5c3b426fb285eae5fc109efaa5759f6736778341d"
+  },
+  "id": "X1b2tVsR1YsvvdNt",
+  "tags": []
+}
