@@ -2,7 +2,7 @@
 
 An intelligent automation workflow built with n8n that streamlines email management. It uses Google Gemini AI to summarize incoming emails, logs details to Google Sheets, sends interactive notifications to Telegram, and drafts professional replies upon user approval.
 
-![Workflow Overview Screenshot](https://github.com/Eshtiaque/Gmail-Automation/blob/main/Images/Screenshot%202025-12-23%20034346.png)
+![Workflow Overview Screenshot](https://github.com/Eshtiaque/Gmail-Automation/blob/main/Images%20&%20Video/Screenshot%202025-12-23%20034346.png?raw=true)
 
 ---
 
