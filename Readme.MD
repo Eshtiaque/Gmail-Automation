@@ -39,8 +39,9 @@ This workflow is designed to save time and improve email productivity. Instead o
  Google Sheets
 ## Run process
 ```
+npm install -g n8n
 npx ngrok http 5678
-$env:WEBHOOK_URL="https://use here the ngrok link"; npx n8n start
+$env:WEBHOOK_URL="https://use here the ngrok link"; n8n start
 ```
 ---
 Note This project uses n8n's `Wait` node with a webhook resume URL to handle asynchronous user approval via Telegram without losing execution context.
