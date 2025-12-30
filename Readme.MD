@@ -37,6 +37,11 @@ This workflow is designed to save time and improve email productivity. Instead o
  Google Cloud Platform Account (for Gemini API Key and Sheets API)
  Telegram Bot (Create via BotFather to get the Token and Chat ID)
  Google Sheets
-
+## Run process
+```
+npm install -g n8n
+npx ngrok http 5678
+$env:WEBHOOK_URL="https://use here the ngrok link"; n8n start
+```
 ---
 Note This project uses n8n's `Wait` node with a webhook resume URL to handle asynchronous user approval via Telegram without losing execution context.
